@@ -23,6 +23,7 @@ test("server-renders the CardioScope monitor", async () => {
   assert.match(html, /<title>CardioScope — ECG Monitor<\/title>/i);
   assert.match(html, /CardioScope/);
   assert.match(html, /Connect USB/);
+  assert.match(html, /Enable sound/);
   assert.match(html, /Demo signal/);
   assert.match(html, /Not for diagnostic use/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/);

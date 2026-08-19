@@ -28,7 +28,11 @@ h1 { margin: 0; font-size: 20px; letter-spacing: -.035em; }
 .device-state.is-connected i { background: #91ae16; box-shadow: 0 0 0 4px rgba(145, 174, 22, .12); }
 .connect-button { min-height: 44px; padding: 0 20px; border: 0; border-radius: 4px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
 .connect-button:hover { background: #2b2f29; }
-.connect-button:focus-visible, .session-block button:focus-visible, .signal-settings summary:focus-visible, .settings-menu button:focus-visible { outline: 2px solid var(--acid); outline-offset: 3px; }
+.sound-toggle { min-height: 40px; display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid #c8cbc2; border-radius: 4px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 700; cursor: pointer; }
+.sound-toggle span { font-size: 15px; line-height: 1; }
+.sound-toggle:hover { border-color: #999e92; color: var(--ink); }
+.sound-toggle.is-active { border-color: #9cac4b; background: #e8edc9; color: #394213; }
+.connect-button:focus-visible, .sound-toggle:focus-visible, .session-block button:focus-visible, .signal-settings summary:focus-visible, .settings-menu button:focus-visible { outline: 2px solid var(--acid); outline-offset: 3px; }
 
 .monitor-layout { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 1px; margin-top: 38px; background: #2a2e29; border: 1px solid #2a2e29; box-shadow: 0 18px 42px rgba(32, 35, 28, .12); }
 .display-panel { min-width: 0; background: var(--screen); color: #fff; }
@@ -98,6 +102,9 @@ h1 { margin: 0; font-size: 20px; letter-spacing: -.035em; }
 @media (max-width: 560px) {
   .brand-mark { width: 36px; height: 36px; }
   .connect-button { min-height: 40px; padding: 0 14px; }
+  .header-actions { gap: 8px; }
+  .sound-toggle { width: 40px; justify-content: center; padding: 0; font-size: 0; }
+  .sound-toggle span { font-size: 15px; }
   .signal-meta span { display: none; }
   .display-toolbar { min-height: 88px; padding: 18px; }
   .waveform-stage { height: 330px; }

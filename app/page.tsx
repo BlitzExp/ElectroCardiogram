@@ -19,6 +19,8 @@ interface NavigatorWithSerial extends Navigator {
 const SAMPLE_RATE = 250;
 const MAX_SAMPLES = SAMPLE_RATE * 12;
 const BAUD_RATE = 115200;
+const DEMO_BPM = 72;
+const DEMO_BEAT_SAMPLES = Math.round((60 / DEMO_BPM) * SAMPLE_RATE);
 
 function formatDuration(seconds: number) {
   const hours = Math.floor(seconds / 3600).toString().padStart(2, "0");
@@ -28,8 +30,7 @@ function formatDuration(seconds: number) {
 }
 
 function demoSample(sampleIndex: number) {
-  const beatLength = Math.round((60 / 72) * SAMPLE_RATE);
-  const phase = (sampleIndex % beatLength) / beatLength;
+  const phase = (sampleIndex % DEMO_BEAT_SAMPLES) / DEMO_BEAT_SAMPLES;
   const gaussian = (center: number, width: number, amplitude: number) =>
     amplitude * Math.exp(-0.5 * Math.pow((phase - center) / width, 2));
 
@@ -54,6 +55,9 @@ export default function Home() {
   const stopReadingRef = useRef(false);
   const lastUiUpdateRef = useRef(0);
   const peakRef = useRef({ previousTwo: 0, previous: 0, lastPeak: -1000, intervals: [] as number[] });
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const soundEnabledRef = useRef(false);
+  const pausedRef = useRef(false);
 
   const [source, setSource] = useState<SourceMode>("demo");
   const [connected, setConnected] = useState(false);
@@ -66,6 +70,63 @@ export default function Home() {
   const [sweepSpeed, setSweepSpeed] = useState<SweepSpeed>(25);
   const [message, setMessage] = useState("Demo signal active");
   const [serialSupported, setSerialSupported] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+
+  const playHeartbeatSound = useCallback(() => {
+    const audioContext = audioContextRef.current;
+    if (!soundEnabledRef.current || pausedRef.current || !audioContext) return;
+
+    const start = audioContext.currentTime;
+    const tone = audioContext.createOscillator();
+    const overtone = audioContext.createOscillator();
+    const toneGain = audioContext.createGain();
+    const overtoneGain = audioContext.createGain();
+    const monitorFilter = audioContext.createBiquadFilter();
+
+    tone.type = "square";
+    tone.frequency.setValueAtTime(1040, start);
+    tone.frequency.exponentialRampToValueAtTime(990, start + 0.075);
+    overtone.type = "sine";
+    overtone.frequency.setValueAtTime(2080, start);
+    monitorFilter.type = "lowpass";
+    monitorFilter.frequency.setValueAtTime(2600, start);
+    monitorFilter.Q.setValueAtTime(0.7, start);
+
+    toneGain.gain.setValueAtTime(0.0001, start);
+    toneGain.gain.exponentialRampToValueAtTime(0.11, start + 0.002);
+    toneGain.gain.setValueAtTime(0.095, start + 0.045);
+    toneGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.105);
+    overtoneGain.gain.setValueAtTime(0.0001, start);
+    overtoneGain.gain.exponentialRampToValueAtTime(0.018, start + 0.002);
+    overtoneGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.045);
+
+    tone.connect(toneGain).connect(monitorFilter);
+    overtone.connect(overtoneGain).connect(monitorFilter);
+    monitorFilter.connect(audioContext.destination);
+    tone.start(start);
+    overtone.start(start);
+    tone.stop(start + 0.11);
+    overtone.stop(start + 0.05);
+  }, []);
+
+  const toggleSound = async () => {
+    if (soundEnabledRef.current) {
+      soundEnabledRef.current = false;
+      setSoundEnabled(false);
+      return;
+    }
+
+    try {
+      const audioContext = audioContextRef.current ?? new AudioContext();
+      audioContextRef.current = audioContext;
+      await audioContext.resume();
+      soundEnabledRef.current = true;
+      setSoundEnabled(true);
+      playHeartbeatSound();
+    } catch {
+      setMessage("Sound could not start in this browser");
+    }
+  };
 
   const resetSignal = useCallback(() => {
     samplesRef.current = [];
@@ -99,6 +160,7 @@ export default function Home() {
           high - low > 4 &&
           sampleIndexRef.current - detector.lastPeak > SAMPLE_RATE * 0.32
         ) {
+          playHeartbeatSound();
           if (detector.lastPeak > 0) {
             const interval = (sampleIndexRef.current - 1 - detector.lastPeak) / SAMPLE_RATE;
             const estimate = 60 / interval;
@@ -124,10 +186,19 @@ export default function Home() {
       setSampleCount(sampleIndexRef.current);
       lastUiUpdateRef.current = now;
     }
-  }, []);
+  }, [playHeartbeatSound]);
 
   useEffect(() => {
     setSerialSupported(Boolean((navigator as NavigatorWithSerial).serial));
+  }, []);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
+
+  useEffect(() => () => {
+    soundEnabledRef.current = false;
+    void audioContextRef.current?.close();
   }, []);
 
   useEffect(() => {
@@ -136,13 +207,17 @@ export default function Home() {
     const interval = window.setInterval(() => {
       const next: number[] = [];
       for (let index = 0; index < 5; index += 1) {
-        next.push(demoSample(sampleIndexRef.current + index));
+        const nextSampleIndex = sampleIndexRef.current + index;
+        if (nextSampleIndex % DEMO_BEAT_SAMPLES === Math.round(DEMO_BEAT_SAMPLES * 0.4)) {
+          playHeartbeatSound();
+        }
+        next.push(demoSample(nextSampleIndex));
       }
       ingestSamples(next, "demo");
     }, 20);
 
     return () => window.clearInterval(interval);
-  }, [ingestSamples, paused, source]);
+  }, [ingestSamples, paused, playHeartbeatSound, source]);
 
   useEffect(() => {
     if (paused) return;
@@ -298,6 +373,15 @@ export default function Home() {
           </div>
         </div>
         <div className="header-actions">
+          <button
+            className={`sound-toggle ${soundEnabled ? "is-active" : ""}`}
+            type="button"
+            aria-pressed={soundEnabled}
+            onClick={toggleSound}
+          >
+            <span aria-hidden="true">♪</span>
+            {soundEnabled ? "Sound on" : "Enable sound"}
+          </button>
           <span className={`device-state ${connected ? "is-connected" : ""}`}>
             <i /> {connected ? "ESP32 connected" : "Demo mode"}
           </span>
