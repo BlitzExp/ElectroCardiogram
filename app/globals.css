@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #f1f1ec;
+  --ink: #171916;
+  --muted: #70746d;
+  --line: #d5d7cf;
+  --screen: #111510;
+  --acid: #dfff55;
+}
+
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: Arial, Helvetica, sans-serif; }
+button { font: inherit; }
+
+.app-shell { width: min(1540px, 100%); min-height: 100vh; margin: 0 auto; padding: 0 42px 30px; }
+.topbar { height: 98px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+.brand-lockup, .header-actions, .display-toolbar, .signal-meta, .vital-heading { display: flex; align-items: center; }
+.brand-lockup { gap: 14px; }
+.brand-mark { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: var(--ink); color: var(--acid); font: 700 18px/1 var(--font-geist-mono), monospace; }
+.eyebrow { margin: 0 0 3px; color: var(--muted); font: 600 10px/1 var(--font-geist-mono), monospace; letter-spacing: .16em; text-transform: uppercase; }
+h1 { margin: 0; font-size: 20px; letter-spacing: -.035em; }
+.header-actions { gap: 22px; }
+.device-state { color: var(--muted); font: 600 12px/1 var(--font-geist-mono), monospace; }
+.device-state i, .live-indicator i, .vital-primary p i { display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: #a3a69e; }
+.device-state.is-connected { color: #3d4a24; }
+.device-state.is-connected i { background: #91ae16; box-shadow: 0 0 0 4px rgba(145, 174, 22, .12); }
+.connect-button { min-height: 44px; padding: 0 20px; border: 0; border-radius: 4px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
+.connect-button:hover { background: #2b2f29; }
+.connect-button:focus-visible, .session-block button:focus-visible, .signal-settings summary:focus-visible, .settings-menu button:focus-visible { outline: 2px solid var(--acid); outline-offset: 3px; }
+
+.monitor-layout { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 1px; margin-top: 38px; background: #2a2e29; border: 1px solid #2a2e29; box-shadow: 0 18px 42px rgba(32, 35, 28, .12); }
+.display-panel { min-width: 0; background: var(--screen); color: #fff; }
+.display-toolbar { min-height: 106px; justify-content: space-between; padding: 22px 28px; border-bottom: 1px solid #2b3029; }
+.live-indicator { color: #a9aea4; font: 500 10px/1 var(--font-geist-mono), monospace; letter-spacing: .1em; text-transform: uppercase; }
+.live-indicator i { background: var(--acid); box-shadow: 0 0 9px rgba(223, 255, 85, .8); }
+.display-toolbar h2 { margin: 9px 0 0; font-size: 24px; font-weight: 500; letter-spacing: -.035em; }
+.signal-meta { gap: 24px; color: #8c9187; font: 500 11px/1 var(--font-geist-mono), monospace; }
+.signal-settings { position: relative; }
+.signal-settings summary { width: 36px; height: 32px; display: grid; place-items: center; border: 1px solid #383d36; border-radius: 3px; color: #c8ccc4; cursor: pointer; list-style: none; }
+.signal-settings summary::-webkit-details-marker { display: none; }
+.settings-menu { position: absolute; z-index: 10; top: 42px; right: 0; width: 210px; padding: 16px; border: 1px solid #3a4037; border-radius: 4px; background: #20251e; box-shadow: 0 18px 40px rgba(0, 0, 0, .4); }
+.settings-menu p { margin: 0 0 9px; color: #8f958b; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+.settings-menu p:not(:first-child) { margin-top: 16px; }
+.settings-menu div { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 5px; }
+.settings-menu button { min-width: 0; height: 34px; border: 1px solid #3a4037; border-radius: 2px; background: transparent; color: #c2c7be; font: 600 10px/1 var(--font-geist-mono), monospace; cursor: pointer; }
+.settings-menu button.active { border-color: var(--acid); background: var(--acid); color: #171b13; }
+
+.waveform-stage { position: relative; height: clamp(330px, 47vw, 590px); overflow: hidden; background-color: #111510; background-image: linear-gradient(rgba(172, 183, 163, .08) 1px, transparent 1px), linear-gradient(90deg, rgba(172, 183, 163, .08) 1px, transparent 1px), linear-gradient(rgba(172, 183, 163, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(172, 183, 163, .035) 1px, transparent 1px); background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px; }
+.waveform-canvas { width: 100%; height: 100%; display: block; }
+.lead-label { position: absolute; z-index: 2; left: 26px; top: 22px; color: var(--acid); font: 600 13px/1 var(--font-geist-mono), monospace; }
+.sweep-line { position: absolute; top: 0; right: 10%; bottom: 0; width: 2px; background: linear-gradient(transparent 10%, rgba(223, 255, 85, .45), transparent 90%); box-shadow: -14px 0 22px rgba(223, 255, 85, .08); }
+.stage-note { position: absolute; right: 26px; bottom: 21px; color: #6c7168; font: 500 10px/1 var(--font-geist-mono), monospace; text-transform: uppercase; letter-spacing: .1em; }
+.display-footer { min-height: 46px; display: flex; justify-content: space-between; align-items: center; padding: 0 28px; border-top: 1px solid #2b3029; color: #777d73; font: 500 9px/1 var(--font-geist-mono), monospace; }
+
+.vitals-panel { display: flex; flex-direction: column; padding: 30px 26px 24px; background: #181c17; color: #fff; }
+.vital-heading { justify-content: space-between; color: #a9aea4; font-size: 12px; }
+.unit { font: 500 9px/1 var(--font-geist-mono), monospace; letter-spacing: .08em; }
+.vital-primary strong { display: block; margin: 18px 0 8px; color: var(--acid); font: 500 clamp(68px, 7vw, 96px)/.85 var(--font-geist-mono), monospace; letter-spacing: -.08em; }
+.vital-primary p { margin: 20px 0 0; color: #92978e; font-size: 11px; }
+.vital-primary p i { background: var(--acid); }
+.divider { height: 1px; margin: 30px 0; background: #333830; }
+.vital-secondary > span, .session-block > span { color: #90958b; font-size: 11px; }
+.vital-secondary strong { display: block; margin: 10px 0 16px; font-size: 22px; font-weight: 500; }
+.signal-bars { height: 24px; display: flex; align-items: end; gap: 4px; }
+.signal-bars i { width: 5px; background: var(--acid); border-radius: 1px; }
+.signal-bars i:nth-child(1) { height: 7px; }
+.signal-bars i:nth-child(2) { height: 12px; }
+.signal-bars i:nth-child(3) { height: 18px; }
+.signal-bars i:nth-child(4) { height: 24px; }
+.signal-bars:not(.active) i { opacity: .2; }
+.session-block { margin-top: auto; }
+.session-block strong { display: block; margin: 10px 0 18px; font: 500 18px/1 var(--font-geist-mono), monospace; }
+.session-block button { width: 100%; height: 42px; border: 1px solid #484e44; border-radius: 3px; background: transparent; color: #c5c9c1; cursor: pointer; }
+.session-block button:hover { border-color: #747c6e; background: #20251e; }
+
+.status-footer { display: grid; grid-template-columns: 1.5fr repeat(3, minmax(110px, .7fr)) auto; gap: 28px; align-items: center; min-height: 104px; border-bottom: 1px solid var(--line); }
+.status-footer p { margin: 0; }
+.status-footer p span { display: block; margin-bottom: 7px; color: var(--muted); font-size: 10px; }
+.status-footer p strong { font: 600 12px/1 var(--font-geist-mono), monospace; }
+.status-footer small { color: #868a82; font-size: 10px; text-align: right; }
+
+@media (max-width: 880px) {
+  .app-shell { padding: 0 18px 24px; }
+  .topbar { height: 82px; }
+  .device-state { display: none; }
+  .monitor-layout { grid-template-columns: 1fr; margin-top: 24px; }
+  .vitals-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .vitals-panel .divider { display: none; }
+  .session-block { display: block; grid-column: 1 / -1; margin-top: 0; }
+  .session-block button { max-width: 220px; }
+  .vital-primary strong { font-size: 64px; }
+  .status-footer { grid-template-columns: 1fr 1fr; padding: 22px 0; }
+  .status-footer small { text-align: left; }
+}
+
+@media (max-width: 560px) {
+  .brand-mark { width: 36px; height: 36px; }
+  .connect-button { min-height: 40px; padding: 0 14px; }
+  .signal-meta span { display: none; }
+  .display-toolbar { min-height: 88px; padding: 18px; }
+  .waveform-stage { height: 330px; }
+  .display-footer { padding: 0 18px; }
+  .status-footer { grid-template-columns: 1fr 1fr; gap: 22px 12px; }
+  .status-footer small { grid-column: 1 / -1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; }
+}

@@ -216,3 +216,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# CardioScope web app
+node_modules/
+.pnpm-store/
+.next/
+.vinext/
+dist/
+.wrangler/
+coverage/
+.env*
+!.env.example
+npm-debug.log*
+pnpm-debug.log*
