@@ -32,7 +32,7 @@ CSV-style lines also work; the final numeric field is used:
 
 The waveform and BPM detector currently assume a sample rate of **250 Hz**. The serial monitor and CardioScope cannot open the same USB port at the same time.
 
-## ESP32 test sketch
+## ESP8266 / ESP32 test sketch
 
 This sketch sends a repeating synthetic ECG-like pulse at 250 samples per second:
 
@@ -65,4 +65,4 @@ void loop() {
 }
 ```
 
-Upload the sketch, close the Arduino Serial Monitor, open CardioScope, select **Connect USB**, and choose the ESP32 port.
+For the NodeMCU ESP8266 shown above, upload [`firmware/esp8266_mock_ecg/esp8266_mock_ecg.ino`](firmware/esp8266_mock_ecg/esp8266_mock_ecg.ino) with **NodeMCU 1.0 (ESP-12E Module)** selected. Then close the Arduino Serial Monitor, open CardioScope, select **Connect USB**, and choose the USB serial port.
