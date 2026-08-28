@@ -49,6 +49,7 @@ function demoSample(sampleIndex: number) {
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const samplesRef = useRef<number[]>([]);
+  const sampleTimestampsRef = useRef<number[]>([]);
   const sampleIndexRef = useRef(0);
   const portRef = useRef<SerialPortLike | null>(null);
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
@@ -128,8 +129,40 @@ export default function Home() {
     }
   };
 
+  const exportCsv = useCallback(() => {
+    const values = samplesRef.current;
+    const timestamps = sampleTimestampsRef.current;
+    if (!values.length) {
+      setMessage("No ECG samples available to export yet");
+      return;
+    }
+
+    const suggestedName = `ecg-samples-${new Date().toISOString().replace(/[:.]/g, "-")}.csv`;
+    const customName = window.prompt("Nombre del archivo CSV", suggestedName);
+    const fileName = customName ? customName.trim() : suggestedName;
+    const safeName = fileName.endsWith(".csv") ? fileName : `${fileName}.csv`;
+
+    const csv = [
+      "timestamp_ms,sample_value",
+      ...values.map((value, index) => `${timestamps[index] ?? Date.now()},${value}`),
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = safeName;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setMessage(`ECG data exported to ${safeName}`);
+  }, []);
+
   const resetSignal = useCallback(() => {
     samplesRef.current = [];
+    sampleTimestampsRef.current = [];
     sampleIndexRef.current = 0;
     peakRef.current = { previousTwo: 0, previous: 0, lastPeak: -1000, intervals: [] };
     setLastSample(null);
@@ -141,9 +174,11 @@ export default function Home() {
     if (!incoming.length) return;
 
     const buffer = samplesRef.current;
+    const timestamps = sampleTimestampsRef.current;
     for (const value of incoming) {
       if (!Number.isFinite(value)) continue;
       buffer.push(value);
+      timestamps.push(Date.now());
       sampleIndexRef.current += 1;
 
       if (mode === "serial" && buffer.length > 20) {
@@ -381,6 +416,9 @@ export default function Home() {
           >
             <span aria-hidden="true">♪</span>
             {soundEnabled ? "Sound on" : "Enable sound"}
+          </button>
+          <button className="export-button" type="button" onClick={exportCsv}>
+            Export CSV
           </button>
           <span className={`device-state ${connected ? "is-connected" : ""}`}>
             <i /> {connected ? "ESP32 connected" : "Demo mode"}
