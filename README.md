@@ -30,7 +30,7 @@ CSV-style lines also work; the final numeric field is used:
 1712345682,2054
 ```
 
-The waveform and BPM detector currently assume a sample rate of **250 Hz**. The serial monitor and CardioScope cannot open the same USB port at the same time.
+The demo signal runs at **250 Hz**. For USB serial input, CardioScope starts with a 200 Hz fallback and measures the effective incoming sample rate after 1.5 seconds; the waveform time scale and BPM detector use that measured rate. This avoids the 25% BPM inflation caused when firmware using `delay(5)` (~200 Hz) is interpreted as 250 Hz. The serial monitor and CardioScope cannot open the same USB port at the same time.
 
 ## ESP8266 / ESP32 test sketch
 

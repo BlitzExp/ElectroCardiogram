@@ -41,6 +41,8 @@ test("removes the starter preview and documents the serial contract", async () =
   assert.match(page, /requestPort/);
   assert.match(page, /baudRate: BAUD_RATE/);
   assert.match(readme, /250 Hz/);
+  assert.match(readme, /measures the effective incoming sample rate/);
+  assert.match(page, /SERIAL_FALLBACK_SAMPLE_RATE = 200/);
   assert.match(readme, /Serial\.println/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 });

@@ -16,11 +16,12 @@ interface NavigatorWithSerial extends Navigator {
   serial?: { requestPort(): Promise<SerialPortLike> };
 }
 
-const SAMPLE_RATE = 250;
-const MAX_SAMPLES = SAMPLE_RATE * 12;
+const DEMO_SAMPLE_RATE = 250;
+const SERIAL_FALLBACK_SAMPLE_RATE = 200;
+const MAX_SAMPLES = DEMO_SAMPLE_RATE * 12;
 const BAUD_RATE = 115200;
 const DEMO_BPM = 72;
-const DEMO_BEAT_SAMPLES = Math.round((60 / DEMO_BPM) * SAMPLE_RATE);
+const DEMO_BEAT_SAMPLES = Math.round((60 / DEMO_BPM) * DEMO_SAMPLE_RATE);
 
 function formatDuration(seconds: number) {
   const hours = Math.floor(seconds / 3600).toString().padStart(2, "0");
@@ -56,6 +57,7 @@ export default function Home() {
   const stopReadingRef = useRef(false);
   const lastUiUpdateRef = useRef(0);
   const peakRef = useRef({ previousTwo: 0, previous: 0, lastPeak: -1000, intervals: [] as number[] });
+  const serialTimingRef = useRef({ startedAt: 0, startSample: 0, sampleRate: SERIAL_FALLBACK_SAMPLE_RATE });
   const audioContextRef = useRef<AudioContext | null>(null);
   const soundEnabledRef = useRef(false);
   const pausedRef = useRef(false);
@@ -65,6 +67,7 @@ export default function Home() {
   const [paused, setPaused] = useState(false);
   const [lastSample, setLastSample] = useState<number | null>(null);
   const [sampleCount, setSampleCount] = useState(0);
+  const [sampleRate, setSampleRate] = useState(DEMO_SAMPLE_RATE);
   const [bpm, setBpm] = useState<number | null>(72);
   const [elapsed, setElapsed] = useState(0);
   const [gain, setGain] = useState<Gain>(1);
@@ -165,6 +168,7 @@ export default function Home() {
     sampleTimestampsRef.current = [];
     sampleIndexRef.current = 0;
     peakRef.current = { previousTwo: 0, previous: 0, lastPeak: -1000, intervals: [] };
+    serialTimingRef.current = { startedAt: 0, startSample: 0, sampleRate: SERIAL_FALLBACK_SAMPLE_RATE };
     setLastSample(null);
     setSampleCount(0);
     setElapsed(0);
@@ -175,6 +179,28 @@ export default function Home() {
 
     const buffer = samplesRef.current;
     const timestamps = sampleTimestampsRef.current;
+    const now = performance.now();
+    let effectiveSampleRate = DEMO_SAMPLE_RATE;
+
+    if (mode === "serial") {
+      const timing = serialTimingRef.current;
+      if (timing.startedAt === 0) {
+        timing.startedAt = now;
+        // Exclude the first already-buffered chunk from the timed window.
+        timing.startSample = sampleIndexRef.current + incoming.length;
+      } else {
+        const elapsedSeconds = (now - timing.startedAt) / 1000;
+        const receivedSinceStart = sampleIndexRef.current + incoming.length - timing.startSample;
+        const measuredRate = receivedSinceStart / elapsedSeconds;
+
+        // A measurement window avoids converting serial chunking jitter into BPM jitter.
+        if (elapsedSeconds >= 1.5 && measuredRate >= 100 && measuredRate <= 500) {
+          timing.sampleRate = measuredRate;
+        }
+      }
+      effectiveSampleRate = timing.sampleRate;
+    }
+
     for (const value of incoming) {
       if (!Number.isFinite(value)) continue;
       buffer.push(value);
@@ -182,7 +208,7 @@ export default function Home() {
       sampleIndexRef.current += 1;
 
       if (mode === "serial" && buffer.length > 20) {
-        const recent = buffer.slice(-Math.min(SAMPLE_RATE, buffer.length));
+        const recent = buffer.slice(-Math.min(Math.round(effectiveSampleRate), buffer.length));
         const low = Math.min(...recent);
         const high = Math.max(...recent);
         const threshold = low + (high - low) * 0.72;
@@ -193,11 +219,11 @@ export default function Home() {
           detector.previous >= value &&
           detector.previous > threshold &&
           high - low > 4 &&
-          sampleIndexRef.current - detector.lastPeak > SAMPLE_RATE * 0.32
+          sampleIndexRef.current - detector.lastPeak > effectiveSampleRate * 0.32
         ) {
           playHeartbeatSound();
           if (detector.lastPeak > 0) {
-            const interval = (sampleIndexRef.current - 1 - detector.lastPeak) / SAMPLE_RATE;
+            const interval = (sampleIndexRef.current - 1 - detector.lastPeak) / effectiveSampleRate;
             const estimate = 60 / interval;
             if (estimate >= 30 && estimate <= 220) {
               detector.intervals.push(estimate);
@@ -215,10 +241,10 @@ export default function Home() {
 
     if (buffer.length > MAX_SAMPLES) buffer.splice(0, buffer.length - MAX_SAMPLES);
 
-    const now = performance.now();
     if (now - lastUiUpdateRef.current > 80) {
       setLastSample(incoming[incoming.length - 1]);
       setSampleCount(sampleIndexRef.current);
+      setSampleRate(Math.round(effectiveSampleRate));
       lastUiUpdateRef.current = now;
     }
   }, [playHeartbeatSound]);
@@ -281,7 +307,7 @@ export default function Home() {
       context.clearRect(0, 0, width, height);
 
       const secondsVisible = sweepSpeed === 25 ? 8 : 4;
-      const pointsVisible = secondsVisible * SAMPLE_RATE;
+      const pointsVisible = Math.round(secondsVisible * (source === "serial" ? serialTimingRef.current.sampleRate : DEMO_SAMPLE_RATE));
       const data = samplesRef.current.slice(-pointsVisible);
       if (data.length > 1) {
         let center = 2048;
@@ -367,6 +393,7 @@ export default function Home() {
       setConnected(true);
       setPaused(false);
       setBpm(null);
+      setSampleRate(SERIAL_FALLBACK_SAMPLE_RATE);
       setMessage("Receiving newline-delimited values");
       void readSerial(port);
     } catch (error) {
@@ -388,6 +415,7 @@ export default function Home() {
     setSource("demo");
     setPaused(false);
     setBpm(72);
+    setSampleRate(DEMO_SAMPLE_RATE);
     resetSignal();
     setMessage("Demo signal active");
   }, [resetSignal]);
@@ -495,6 +523,7 @@ export default function Home() {
       <footer className="status-footer">
         <p><span>Serial input</span><strong>{message}</strong></p>
         <p><span>Baud rate</span><strong>{BAUD_RATE.toLocaleString()}</strong></p>
+        <p><span>Sample rate</span><strong>{source === "serial" ? `≈${sampleRate} Hz measured` : `${sampleRate} Hz`}</strong></p>
         <p><span>Latest sample</span><strong>{lastSample === null ? "—" : Math.round(lastSample)}</strong></p>
         <p><span>Samples received</span><strong>{sampleCount.toLocaleString()}</strong></p>
         <small>{serialSupported ? "Visualization only · Not for diagnostic use" : "Use desktop Chrome or Edge for USB access"}</small>
